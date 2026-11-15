@@ -1,0 +1,16 @@
+{
+  "name": "Harrier VR",
+  "short_name": "Harrier VR",
+  "description": "A first-person VR rail shooter with bosses, stages and an original chiptune soundtrack.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1b0d2b",
+  "theme_color": "#1b0d2b",
+  "icons": [
+    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}
