@@ -35,6 +35,20 @@ button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+(function(){
+  var msg = function(t){ var m = document.getElementById('msg'); if (m) m.textContent = t; };
+  if (typeof THREE === 'undefined') msg('The 3D library did not load from cdnjs.cloudflare.com. Check your connection or any content blocker, then reload.');
+  window.addEventListener('error', function(e){ if (typeof THREE !== 'undefined') msg('Script error: ' + e.message + (e.lineno ? ' (line ' + e.lineno + ')' : '')); });
+  setTimeout(function(){
+    var m = document.getElementById('msg'), g = document.getElementById('go');
+    if (m && /^Checking/.test(m.textContent)){
+      m.textContent = 'The VR check is taking too long. You can still try Enter VR. If it fails, reload in the Meta Quest Browser.';
+      if (g) g.disabled = false;
+    }
+  }, 4000);
+})();
+</script>
+<script>
 const T = THREE, FLOOR = -2;
 const renderer = new T.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
