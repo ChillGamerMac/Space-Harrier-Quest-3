@@ -1,7 +1,7 @@
 {
-  "name": "Harrier VR",
-  "short_name": "Harrier VR",
-  "description": "A first-person VR rail shooter with bosses, stages and an original chiptune soundtrack.",
+  "name": "Space Harrier Vibe Run",
+  "short_name": "Vibe Run",
+  "description": "Space Harrier Vibe Run: a first-person VR rail shooter with bosses, stages and an original chiptune soundtrack. Vibe coded by Claude and ChillGamerMac. 2026",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,8 +9,23 @@
   "background_color": "#1b0d2b",
   "theme_color": "#1b0d2b",
   "icons": [
-    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
-    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
-    { "src": "icons/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
   ]
 }
