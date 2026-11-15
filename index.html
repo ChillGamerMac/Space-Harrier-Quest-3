@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Harrier VR</title>
+<title>Space Harrier Vibe Run</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1b0d2b">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -29,8 +29,14 @@ button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
   <p>A first-person rail shooter in the spirit of the arcade classic. Fly over the checkerboard, shoot the drones, dodge the columns and bushes.</p>
   <p>Thumbstick: fly. Trigger: fire where the controller points. Either hand works. Turn your head to look around, lean to dodge.</p>
   <button id="go" disabled>Enter VR</button>
-  <p><label>Optional stage theme (MIDI file): <input type="file" id="mf" accept=".mid,.midi,audio/midi"></label></p>
+  <p><label>Stage music (optional): <input type="file" id="mf" accept="audio/*,.mid,.midi"></label></p>
   <p id="mm"></p>
+  <p><label>Boss music (optional): <input type="file" id="bf" accept="audio/*,.mid,.midi"></label></p>
+  <p id="bm"></p>
+  <p><label>Stage-intro voice clip (optional): <input type="file" id="vi" accept="audio/*"></label></p>
+  <p id="vim"></p>
+  <p><label>Praise voice clip (optional): <input type="file" id="vp" accept="audio/*"></label></p>
+  <p id="vpm"></p>
   <p id="msg">Checking for WebXR…</p>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -95,7 +101,7 @@ const hg = hc.getContext('2d'); const htex = new T.CanvasTexture(hc);
 const hud = new T.Mesh(new T.PlaneGeometry(2,1), new T.MeshBasicMaterial({map:htex,transparent:true,fog:false,depthTest:false}));
 hud.position.set(0,2.4,-4); hud.renderOrder = 10; rig.add(hud);
 
-let state = 'title', score = 0, best = 0, lives = 3, t = 0, inv = 0, flash = 0, overT = 0, propT = 0, enemyT = 1, stage = 1, stageClock = 0, stageT = 0, boss = null;
+let state = 'title', score = 0, best = 0, lives = 3, t = 0, inv = 0, flash = 0, overT = 0, propT = 0, enemyT = 1, stage = 1, stageClock = 0, stageT = 0, boss = null, quitT = 0, streak = 0;
 function drawHud(){
   hg.clearRect(0,0,512,256); hg.fillStyle = 'rgba(20,8,40,.6)'; hg.fillRect(0,0,512,256);
   hg.fillStyle = '#fff'; hg.textAlign = 'center';
@@ -111,11 +117,15 @@ function drawHud(){
     hg.font = '32px Georgia';
     hg.fillText(state === 'over' ? 'Score ' + score : 'Stick: fly   Trigger: fire', 256, 145);
     hg.fillText('Pull a trigger to start', 256, 200);
-    hg.font = '22px Georgia'; hg.fillText('A B X Y: music    Stick click: change view', 256, 240);
+    hg.font = '21px Georgia'; hg.fillText('A X: music    B Y: quit    Stick click: view', 256, 240);
   }
   if (boss && !boss.dying && state === 'play'){
     hg.fillStyle = '#5a1010'; hg.fillRect(40,242,432,10);
     hg.fillStyle = '#ff4a3a'; hg.fillRect(40,242,432*Math.max(0,boss.hp)/boss.max,10);
+  }
+  if (quitT > 0){
+    hg.fillStyle = 'rgba(160,20,40,.92)'; hg.fillRect(0,90,512,76);
+    hg.fillStyle = '#fff'; hg.font = 'bold 34px Georgia'; hg.fillText('QUIT? Press B / Y again', 256, 138);
   }
   htex.needsUpdate = true;
 }
@@ -148,13 +158,13 @@ function startGame(){
 }
 function hurt(c){
   if (inv > 0 || state !== 'play') return;
-  lives--; inv = 2; flash = .3; sfx('hurt');
+  lives--; inv = 2; flash = .3; streak = 0; sfx('hurt');
   ctrls.forEach(k => haptic(k, 1, 250));
   if (lives <= 0){ state = 'over'; best = Math.max(best, score); overT = 1.2; setMusic(); }
   drawHud();
 }
 function readInput(){
-  let mx = 0, my = 0, tog = false, vt = false; const fire = [];
+  let mx = 0, my = 0, tog = false, vt = false, qt = false; const fire = [];
   ctrls.forEach(c => {
     const s = c.userData.src; if (!s || !s.gamepad) return;
     const a = s.gamepad.axes, b = s.gamepad.buttons;
@@ -162,12 +172,13 @@ function readInput(){
     if (Math.abs(x) > Math.abs(mx)) mx = x;
     if (Math.abs(y) > Math.abs(my)) my = y;
     if (b[0] && b[0].pressed) fire.push(c);
-    const pr = (b[4] && b[4].pressed) || (b[5] && b[5].pressed);
+    const pr = b[4] && b[4].pressed, pq = b[5] && b[5].pressed;
+    if (pq && !c.userData.pq) qt = true; c.userData.pq = pq;
     if (pr && !c.userData.tp) tog = true; c.userData.tp = pr;
     const sp = b[3] && b[3].pressed;
     if (sp && !c.userData.sp) vt = true; c.userData.sp = sp;
   });
-  return {mx: Math.abs(mx) > .12 ? mx : 0, my: Math.abs(my) > .12 ? my : 0, fire, tog, vt};
+  return {mx: Math.abs(mx) > .12 ? mx : 0, my: Math.abs(my) > .12 ? my : 0, fire, tog, vt, qt};
 }
 
 // audio: original chiptune track + sfx, all synthesized
@@ -177,7 +188,7 @@ const ARP = [0,1,2,3,2,1,2,3,0,1,2,3,2,1,3,2];
 const HOOK = [[81,0,84,0,88,0,84,81],[77,0,81,0,84,0,81,77],[79,0,84,0,88,0,91,88],[86,0,83,0,79,0,83,86]];
 const hz = n => 440*Math.pow(2,(n-69)/12);
 function initAudio(){
-  if (AC) return;
+  if (AC){ if (AC.state === 'suspended') AC.resume(); return; }
   AC = new (window.AudioContext || window.webkitAudioContext)();
   mGain = AC.createGain(); mGain.connect(AC.destination);
   sGain = AC.createGain(); sGain.gain.value = .5; sGain.connect(AC.destination);
@@ -208,7 +219,7 @@ function playStep(s, t0){
   if (k%4 === 2 || (boss && k%2 === 0)) noise(t0, .04, .25, 7000, mGain);
 }
 // optional user-supplied MIDI stage theme: loaded at runtime on the device, never bundled
-let mid = null, midOn = false, midI = 0, midT0 = 0;
+let mid = null, midOn = false, midI = 0, midT0 = 0, trk = {stage:null, boss:null, intro:null, praise:null}, curK = '', bufSrc = null, lastSay = 0;
 function parseMidi(buf){
   const d = new DataView(buf); let p = 0;
   const u32 = () => { const v = d.getUint32(p); p += 4; return v; }, u16 = () => { const v = d.getUint16(p); p += 2; return v; };
@@ -255,11 +266,23 @@ function midiNote(e, t0){
   const ty = e.ch%4 === 0 ? 'square' : e.ch%4 === 1 ? 'sawtooth' : e.n < 52 ? 'sawtooth' : 'triangle';
   tone(ty, hz(e.n), t0, e.d, .09*e.v, mGain);
 }
+function startBuf(b){ const g = AC.createGain(); g.gain.value = 2.2; bufSrc = AC.createBufferSource(); bufSrc.buffer = b; bufSrc.loop = true; bufSrc.connect(g); g.connect(mGain); bufSrc.start(); }
+function stopBuf(){ if (bufSrc){ try { bufSrc.stop(); } catch(e){} bufSrc = null; } }
+// announcer: the player's own clip if loaded, otherwise the browser's speech voice with our own wording
+function say(kind, text){
+  const now = performance.now(); if (now - lastSay < 1500) return; lastSay = now;
+  const b = trk[kind];
+  if (b && b.buf && AC){ const s = AC.createBufferSource(); s.buffer = b.buf; s.connect(sGain); s.start(); return; }
+  try { const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; u.pitch = 1.15; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e){}
+}
 function musicTick(){
   if (!AC) return;
   if (AC.state === 'suspended') AC.resume();
-  const useMidi = !!mid && !boss;
-  if (useMidi !== midOn){ midOn = useMidi; midI = 0; midT0 = AC.currentTime + .1; }
+  const cur = trk[boss ? 'boss' : 'stage'], ck = cur ? (boss ? 'b' : 's') : '';
+  if (ck !== curK){ curK = ck; midI = 0; midT0 = AC.currentTime + .1; stopBuf(); if (cur && cur.buf) startBuf(cur.buf); }
+  mid = cur && cur.ev ? cur : null;
+  const useMidi = !!mid;
+  if (cur && cur.buf) return;
   if (useMidi){
     const now = AC.currentTime;
     while (midI < mid.ev.length && midT0 + mid.ev[midI].t < now + .25){
@@ -309,30 +332,59 @@ function setStage(n){
   const s = STG[(n-1) % STG.length]; SKY = s[0]; scene.fog.color.set(SKY); scene.background.set(SKY);
   fg.fillStyle = s[1]; fg.fillRect(0,0,128,128); fg.fillStyle = s[2]; fg.fillRect(0,0,64,64); fg.fillRect(64,64,64,64);
   tex.needsUpdate = true; drawHud();
+  say('intro', n === 1 ? 'Get ready!' : 'Stage ' + n + '. Get ready!');
 }
 
+// stage scenery sets: [tall geo, tall mat, short geo, short mat]
+const pmat = c => new T.MeshStandardMaterial({color:c,flatShading:true});
+const PR = [
+  [cGeo, cMat, sGeo, sMat],
+  [new T.ConeGeometry(1,1,6), pmat(0xb06ad8), new T.SphereGeometry(1,10,8), pmat(0xff8a3a)],
+  [new T.OctahedronGeometry(.9), pmat(0x3ae0c0), new T.OctahedronGeometry(1), pmat(0x7ad0ff)],
+  [new T.CylinderGeometry(.5,.5,1,6), pmat(0xff3b8a), new T.IcosahedronGeometry(1,0), pmat(0x40e0ff)]
+];
+// boss roster: segments, colours, head colour, path, firing pattern, fire interval, health multiplier
+const BOSSES = [
+  {n:14, c:[0x2fbf6a,0x1f8a4c], h:0xff4a3a, path:'weave', pat:'spread', iv:1.4, hp:1},
+  {n:20, c:[0xe8a02a,0xb06a14], h:0x9a2fff, path:'swoop', pat:'stream', iv:.25, hp:1.1},
+  {n:7,  c:[0x4fa8ff,0x2a6fdb], h:0xffd23a, path:'weave', pat:'ring',   iv:1.8, hp:1.2, orb:true},
+  {n:16, c:[0xff4fa0,0xb02a70], h:0x33e0ff, path:'swoop', pat:'fan',    iv:1.1, hp:1.3},
+  {n:12, c:[0xe0e0ff,0x8a8ac0], h:0xff3030, path:'weave', pat:'spiral', iv:.14, hp:1.4}
+];
+function bossFire(b){
+  const h = b.head.position, aim = cp.clone().sub(h).normalize(), p = b.def.pat, n = b.nf = (b.nf || 0) + 1;
+  const shoot = d => { const f = new T.Mesh(fGeo, fMat); f.position.copy(h); add(shots, f, {d: d.normalize()}); };
+  const off = (x, y) => aim.clone().add(new T.Vector3(x, y, 0));
+  if (p === 'spread') [-1,0,1].forEach(a => shoot(off(a*.18, 0)));
+  else if (p === 'stream') shoot(off(0, 0));
+  else if (p === 'ring'){ for (let i = 0; i < 10; i++){ const a = i*Math.PI/5 + n*.3; shoot(off(Math.cos(a)*.45, Math.sin(a)*.45)); } }
+  else if (p === 'fan'){ const c = Math.sin(n*.7)*.25; for (let i = -3; i <= 3; i++) shoot(off(c + i*.14, 0)); }
+  else { const a = n*.55; shoot(off(Math.cos(a)*.3, Math.sin(a)*.3)); shoot(off(-Math.cos(a)*.3, -Math.sin(a)*.3)); }
+}
 // serpent boss
 const RB = [45,45,41,44], KB = [MIN,MIN,MAJ,MAJ];
 const bodyA = new T.MeshStandardMaterial({color:0x2fbf6a,flatShading:true}), bodyB = new T.MeshStandardMaterial({color:0x1f8a4c,flatShading:true});
 function bossPos(tt, out){
   const en = Math.min(Math.max(0, 1 - tt/2.5), 1.6)*85;
+  if (boss.def.path === 'swoop') return out.set(7*Math.sin(tt*.7), FLOOR + 4.5 + 3.2*Math.sin(tt*1.9), -42 + 9*Math.sin(tt*.5) - en);
   return out.set(6*Math.sin(tt*.9), FLOOR + 4.5 + 2.5*Math.sin(tt*1.3+1), -45 + 6*Math.sin(tt*.6) - en);
 }
 function spawnBoss(){
-  const head = new T.Mesh(new T.IcosahedronGeometry(1.8,1), new T.MeshStandardMaterial({color:0xff4a3a,flatShading:true}));
+  const def = BOSSES[(stage-1) % BOSSES.length], mA = pmat(def.c[0]), mB = pmat(def.c[1]);
+  const head = new T.Mesh(new T.IcosahedronGeometry(1.8,1), pmat(def.h));
   [-.8,.8].forEach(x => { const e = new T.Mesh(new T.SphereGeometry(.35,8,6), new T.MeshBasicMaterial({color:0xffee33})); e.position.set(x,.5,1.5); head.add(e); });
   scene.add(head);
   const segs = [];
-  for (let i = 0; i < 14; i++){
-    const r = 1.4 - i*.06, s = new T.Mesh(new T.SphereGeometry(r,10,8), i%2 ? bodyA : bodyB);
+  for (let i = 0; i < def.n; i++){
+    const r = def.orb ? 1.1 : 1.4 - i*.84/def.n, s = new T.Mesh(new T.SphereGeometry(r,10,8), i%2 ? mA : mB);
     s.userData.r = r; scene.add(s); segs.push(s);
   }
-  const hp = 60 + 25*(stage-1);
-  boss = {head, segs, t:0, hp, max:hp, fire:2.5, flash:0, dying:0, ex:0};
+  const hp = Math.round((60 + 25*(stage-1))*def.hp);
+  boss = {def, head, segs, t:0, hp, max:hp, fire:2.5, flash:0, dying:0, ex:0};
   bossPos(0, head.position); stageT = 3; drawHud();
 }
 function killBoss(){
-  boss.dying = 1; boss.ex = 0; score += 1500*stage;
+  boss.dying = 1; boss.ex = 0; score += 1500*stage; say('praise', 'Stage clear. Great job!');
   while (shots.length) drop(shots, 0);
   sfx('boom'); drawHud();
 }
@@ -349,7 +401,10 @@ function updateBoss(dt){
   if (!boss) return;
   const b = boss; b.t += dt;
   bossPos(b.t, b.head.position);
-  b.segs.forEach((s,i) => { bossPos(b.t - (i+1)*.14, s.position); s.position.y += .5*Math.sin(i + b.t*3); });
+  b.segs.forEach((s,i) => {
+    if (b.def.orb){ const a = b.t*2 + i*6.2832/b.segs.length; s.position.set(b.head.position.x + 3.8*Math.cos(a), b.head.position.y + 3.8*Math.sin(a), b.head.position.z); }
+    else { bossPos(b.t - (i+1)*.14, s.position); s.position.y += .5*Math.sin(i + b.t*3); }
+  });
   b.flash -= dt; b.head.material.emissive.setHex(b.flash > 0 ? 0xaa4444 : 0);
   if (b.dying){
     b.ex -= dt;
@@ -364,11 +419,7 @@ function updateBoss(dt){
   if (b.t > 2.5){
     b.fire -= dt;
     if (b.fire <= 0){
-      b.fire = Math.max(.8, 1.6 - stage*.15);
-      for (const a of [-1,0,1]){
-        const f = new T.Mesh(fGeo, fMat); f.position.copy(b.head.position);
-        add(shots, f, {d: cp.clone().sub(b.head.position).normalize().add(new T.Vector3(a*.18,0,0)).normalize()});
-      }
+      b.fire = b.def.iv * Math.max(.6, 1 - stage*.05); bossFire(b);
     }
   }
   if (b.head.position.distanceTo(cp) < 2.6) hurt();
@@ -410,6 +461,11 @@ renderer.setAnimationLoop(now => {
   const inp = readInput();
   if (inp.tog){ musicOn = !musicOn; setMusic(); }
   if (inp.vt) setView(!tp);
+  if (quitT > 0 && (quitT -= dt) <= 0) drawHud();
+  if (inp.qt){
+    if (quitT > 0){ quitT = 0; state = 'title'; const qs = renderer.xr.getSession(); if (qs) qs.end(); }
+    else { quitT = 3; drawHud(); }
+  }
   musicTick();
   const speed = state === 'play' ? 30 + (stage-1)*4 + Math.min(stageClock,40)*.1 : 12;
   tex.offset.y += speed*dt/10;
@@ -448,10 +504,10 @@ renderer.setAnimationLoop(now => {
     propT -= dt; enemyT -= dt;
     if (propT <= 0){
       propT = rnd(.25,.6)*30/speed*1.3;
-      const col = Math.random() < .5, h = col ? rnd(3,8) : 1.3;
-      const m = new T.Mesh(col ? cGeo : sGeo, col ? cMat : sMat);
+      const col = Math.random() < .5, h = col ? rnd(3,8) : 1.3, pk = PR[(stage-1) % PR.length];
+      const m = new T.Mesh(col ? pk[0] : pk[2], col ? pk[1] : pk[3]);
       if (col) m.scale.set(1,h,1); else m.scale.setScalar(1.3);
-      m.position.set(rnd(-14,14), FLOOR + (col ? h/2 : 1), -130);
+      m.position.set(boss ? (Math.random() < .5 ? -1 : 1)*rnd(10,24) : rnd(-14,14), FLOOR + (col ? h/2 : 1), -130);
       add(props, m, {r: col ? 1 : 1.3, top: FLOOR + h});
     }
     if (enemyT <= 0){
@@ -494,7 +550,7 @@ renderer.setAnimationLoop(now => {
       const en = enemies[j];
       if (b.m.position.distanceTo(en.m.position) < 1.2){
         hit = true; en.hp--; ctrls.forEach(c => haptic(c, .5, 40));
-        if (en.hp <= 0){ boom(en.m.position, 0xffee66); drop(enemies, j); if (state === 'play'){ score += en.pts; drawHud(); } }
+        if (en.hp <= 0){ boom(en.m.position, 0xffee66); drop(enemies, j); if (state === 'play'){ score += en.pts; drawHud(); if (++streak % 15 === 0) say('praise', 'Great flying!'); } }
         break;
       }
     }
@@ -530,13 +586,19 @@ go.onclick = async () => {
     ui.style.display = 'none'; state = 'title'; overT = .5; drawHud();
   } catch(e){ msg.textContent = 'Could not start VR: ' + e.message; }
 };
-document.getElementById('mf').onchange = async e => {
-  const f = e.target.files[0], m = document.getElementById('mm'); if (!f) return;
-  try {
-    const r = parseMidi(await f.arrayBuffer()); if (!r.ev.length) throw new Error('no notes found');
-    mid = r; m.textContent = 'Loaded ' + f.name + ' (' + Math.round(r.len) + ' s). It plays during stages; bosses keep their own music.';
-  } catch(err){ mid = null; m.textContent = 'Could not read that file: ' + err.message; }
-};
+function wirePicker(inId, msgId, slot, label){
+  document.getElementById(inId).onchange = async e => {
+    const f = e.target.files[0], m = document.getElementById(msgId); if (!f) return;
+    try {
+      initAudio(); const data = await f.arrayBuffer();
+      if (/\.midi?$/i.test(f.name)){ const r = parseMidi(data); if (!r.ev.length) throw new Error('no notes found'); trk[slot] = r; m.textContent = 'Loaded ' + f.name + ' as ' + label + ' (' + Math.round(r.len) + ' s).'; }
+      else { const b = await AC.decodeAudioData(data); trk[slot] = {buf:b}; m.textContent = 'Loaded ' + f.name + ' as ' + label + ' (' + Math.round(b.duration) + ' s).'; }
+      curK = '#';
+    } catch(err){ trk[slot] = null; m.textContent = 'Could not read that file: ' + err.message; }
+  };
+}
+wirePicker('mf', 'mm', 'stage', 'stage music'); wirePicker('bf', 'bm', 'boss', 'boss music');
+wirePicker('vi', 'vim', 'intro', 'stage-intro voice'); wirePicker('vp', 'vpm', 'praise', 'praise voice');
 addEventListener('resize', () => { if (!renderer.xr.isPresenting){ camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);} });
 drawHud();
 </script>
