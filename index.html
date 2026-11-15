@@ -95,7 +95,7 @@ const hg = hc.getContext('2d'); const htex = new T.CanvasTexture(hc);
 const hud = new T.Mesh(new T.PlaneGeometry(2,1), new T.MeshBasicMaterial({map:htex,transparent:true,fog:false,depthTest:false}));
 hud.position.set(0,2.4,-4); hud.renderOrder = 10; rig.add(hud);
 
-let state = 'title', score = 0, top = 0, lives = 3, t = 0, inv = 0, flash = 0, overT = 0, propT = 0, enemyT = 1, stage = 1, stageClock = 0, stageT = 0, boss = null;
+let state = 'title', score = 0, best = 0, lives = 3, t = 0, inv = 0, flash = 0, overT = 0, propT = 0, enemyT = 1, stage = 1, stageClock = 0, stageT = 0, boss = null;
 function drawHud(){
   hg.clearRect(0,0,512,256); hg.fillStyle = 'rgba(20,8,40,.6)'; hg.fillRect(0,0,512,256);
   hg.fillStyle = '#fff'; hg.textAlign = 'center';
@@ -105,7 +105,7 @@ function drawHud(){
   } else if (state === 'play'){
     hg.font = 'bold 54px Georgia'; hg.fillText('SCORE ' + score, 256, 95);
     hg.fillText('LIVES ' + '\u2665'.repeat(lives), 256, 170);
-    hg.font = '30px Georgia'; hg.fillText('STAGE ' + stage + '    TOP ' + top, 256, 226);
+    hg.font = '30px Georgia'; hg.fillText('STAGE ' + stage + '    TOP ' + best, 256, 226);
   } else {
     hg.font = 'italic bold 56px Georgia'; hg.fillText(state === 'over' ? 'GAME OVER' : 'HARRIER VR', 256, 80);
     hg.font = '32px Georgia';
@@ -150,7 +150,7 @@ function hurt(c){
   if (inv > 0 || state !== 'play') return;
   lives--; inv = 2; flash = .3; sfx('hurt');
   ctrls.forEach(k => haptic(k, 1, 250));
-  if (lives <= 0){ state = 'over'; top = Math.max(top, score); overT = 1.2; setMusic(); }
+  if (lives <= 0){ state = 'over'; best = Math.max(best, score); overT = 1.2; setMusic(); }
   drawHud();
 }
 function readInput(){
