@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Space Harrier Vibe Run</title>
+<title>Aero Drake Vibe Run</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="icons/icon-192.png">
@@ -26,7 +26,7 @@ input{font:inherit;color:#fff;max-width:100%}
 </head>
 <body>
 <div id="ui">
-  <h1>SPACE HARRIER<br>VIBE RUN</h1>
+  <h1>AERO DRAKE<br>VIBE RUN</h1>
   <button id="go" disabled>PUSH START</button>
   <p id="msg">Checking for WebXR…</p>
   <p>Stick: fly. Trigger: fire. Lean and turn your head to dodge. Choose your firing hand in Options (right by default).</p>
@@ -40,7 +40,7 @@ input{font:inherit;color:#fff;max-width:100%}
   <p><label>Praise voice clip: <input type="file" id="vp" accept="audio/*"></label></p><p id="vpm"></p></details>
   <p>Vibe coded by Claude and ChillGamerMac. 2026</p>
   <p>This is a fan-made project. All rights reserved</p>
-  <p>Not affiliated with or endorsed by Sega</p>
+  <p>Not affiliated with or endorsed by the rightful owners</p>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>addEventListener('error',e=>{const m=document.getElementById('msg');if(m)m.textContent='Script error: '+e.message});if(typeof THREE==='undefined')addEventListener('DOMContentLoaded',()=>{const m=document.getElementById('msg');if(m)m.textContent='three.js failed to load. Check your connection.'});setTimeout(()=>{const g=document.getElementById('go'),m=document.getElementById('msg');if(g&&g.disabled&&m&&/Checking/.test(m.textContent)){g.disabled=false;m.textContent='Ready (check timed out).'}},4000)</script>
@@ -150,7 +150,7 @@ function drawHud(){
     hg.fillText('LIVES ' + '\u2665'.repeat(lives), 256, 170);
     hg.font = '30px Georgia'; hg.fillText('STAGE ' + stage + '    TOP ' + best, 256, 226);
   } else {
-    hg.font = state === 'over' ? 'italic bold 56px Georgia' : 'italic bold 36px Georgia'; hg.fillText(state === 'over' ? 'GAME OVER' : 'SPACE HARRIER VIBE RUN', 256, 80);
+    hg.font = state === 'over' ? 'italic bold 56px Georgia' : 'italic bold 36px Georgia'; hg.fillText(state === 'over' ? 'GAME OVER' : 'AERO DRAKE VIBE RUN', 256, 80);
     hg.font = '32px Georgia';
     hg.fillText(state === 'over' ? 'Score ' + score : 'Stick: fly   Trigger: fire', 256, 145);
     hg.fillText('Pull your ' + hand.toUpperCase() + ' trigger to start', 256, 178);
@@ -158,7 +158,7 @@ function drawHud(){
     hg.font = '21px Georgia'; hg.fillText('A X: music   B Y: quit   Grip: pause   Click: view', 256, 240);
     hg.font = '17px Georgia'; hg.fillText('Vibe coded by Claude and ChillGamerMac. 2026', 256, 263);
     hg.font = '14px Georgia'; hg.fillText('This is a fan-made project. All rights reserved', 256, 281);
-    hg.fillText('Not affiliated with or endorsed by Sega', 256, 297);
+    hg.fillText('Not affiliated with or endorsed by the rightful owners', 256, 297);
   }
   if (boss && !boss.dying && state === 'play'){
     hg.fillStyle = '#5a1010'; hg.fillRect(40,242,432,10);
