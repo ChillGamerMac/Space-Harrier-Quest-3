@@ -500,7 +500,7 @@ function bossFire(b){
   else if (p === 'ring'){ shoot(off(0, 0)); const rc = [7,9,12][dif]; for (let i = 0; i < rc; i++){ const a = i*Math.PI*2/rc + n*.3; shoot(off(Math.cos(a)*3.2, Math.sin(a)*3.2)); } }
   else if (p === 'fan'){ const c = Math.sin(n*.7)*3; const fk = [2,3,4][dif]; for (let i = -fk; i <= fk; i++) shoot(off(c + i*2.6, [0,0,i*.6][dif])); }
   else if (p === 'spiral'){ const a = n*.55; if (n%5 === 0) shoot(off(0, 0)); shoot(off(Math.cos(a)*2.6, Math.sin(a)*2.6)); shoot(off(-Math.cos(a)*2.6, -Math.sin(a)*2.6)); }
-  else if (p === 'homing'){ (stage < 7 ? [3] : [-3,3]).forEach(x => shoot(off(x*2, 0), {h:1.4, sp:.7, sc:1.6, hp:3})); }
+  else if (p === 'homing'){ [-3,3].forEach(x => shoot(off(x*2, 0), {h:1.4, sp:.7, sc:1.6, hp:3})); }
   else if (p === 'wall'){ const gh = stage < 7 ? 3 : 2, gx = Math.round(rnd(-3,3)), gy = Math.round(rnd(0,6-gh)); for (let i = -5; i <= 5; i++) for (let j = 0; j < 6; j++) if (Math.abs(i - gx) > 1 || j < gy || j >= gy+gh) shoot(new T.Vector3(cp.x + i*2.2, FLOOR + .2 + j*1.4, 0).sub(h)); }
   else { shoot(off(0, 0)); for (let i = -2; i <= 2; i++){ if (!i) continue; shoot(off(i*2.5, i*1.6)); shoot(off(i*2.5, -i*1.6)); } }
 }
@@ -545,7 +545,7 @@ function spawnBoss(){
     const r = def.orb ? 1.1 : 1.4 - i*.84/def.n, s = new T.Mesh((def.rb ? new T.BoxGeometry(r*1.6,r*1.6,r*1.6) : new T.SphereGeometry(r,10,8)), i%2 ? mA : mB);
     s.userData.r = r; scene.add(s); segs.push(s);
   }
-  const hp = Math.round((50 + 12*Math.min(stage-1, 9) + 3*Math.max(0, stage-10))*(1 + (def.hp-1)*.15)*D[dif].hp);
+  const hp = Math.round((50 + 12*Math.min(stage-1, 9) + 3*Math.max(0, stage-10))*(1 + (def.hp-1)*.15)*(stage <= 4 ? 1.12 : 1)*D[dif].hp) + (stage <= 4 ? 23 : 0);
   boss = {def, head, segs, t:0, hp, max:hp, fire:2.5, flash:0, dying:0, ex:0};
   bossPos(0, head.position); stageT = 3; drawHud();
 }
