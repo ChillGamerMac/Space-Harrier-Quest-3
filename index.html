@@ -9,7 +9,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <style>
 html,body{height:100%;margin:0;background:#000;color:#fff;font-family:Impact,'Arial Black',sans-serif;overflow-x:hidden}
-#ui{min-height:100%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px;box-sizing:border-box;position:relative;overflow:hidden;background:linear-gradient(#000 0,#1a0a3a 45%,#6a2a8a 62%,#000 62%)}
+#ui{min-height:100%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px;box-sizing:border-box;position:relative;overflow-x:hidden;background:linear-gradient(#000 0,#1a0a3a 45%,#6a2a8a 62%,#000 62%)}
 #ui:after{content:"";position:absolute;left:-50%;right:-50%;bottom:0;height:38%;background:repeating-conic-gradient(#e0a93a 0 25%,#8a4f1a 0 50%) 0 0/80px 80px;transform:perspective(220px) rotateX(62deg);transform-origin:50% 0;animation:fl 1s linear infinite;z-index:0}
 @keyframes fl{to{background-position:0 80px}}
 #ui>*{position:relative;z-index:1}
@@ -30,7 +30,8 @@ input{font:inherit;color:#fff;max-width:100%}
   <button id="go" disabled>PUSH START</button>
   <p id="msg">Checking for WebXR…</p>
   <p>Stick: fly. Trigger: fire. Lean and turn your head to dodge. Choose your firing hand in Options (right by default).</p>
-  <details><summary>Options</summary>
+  <details open><summary>Options</summary>
+  <p><label>3rd-person character: <select id="cs"><option value="compact">Compact (small, see-through)</option><option value="classic">Classic (large)</option></select></label></p>
   <p><label>Firing hand: <select id="hd"><option value="right">Right</option><option value="left">Left</option></select></label> (the other controller is disabled)</p>
   <p><label>Scroll speed: <select id="ss"><option value="-2">-2 (20% slower)</option><option value="-1">-1 (10% slower)</option><option value="0" selected>0 (standard)</option><option value="1">+1 (10% faster)</option><option value="2">+2 (20% faster)</option></select></label></p>
   <p><label>Stage music: <input type="file" id="mf" accept="audio/*,.mid,.midi"></label></p><p id="mm"></p>
@@ -148,7 +149,7 @@ function drawHud(){
     hg.font = state === 'over' ? 'italic bold 56px Georgia' : 'italic bold 36px Georgia'; hg.fillText(state === 'over' ? 'GAME OVER' : 'SPACE HARRIER VIBE RUN', 256, 80);
     hg.font = '32px Georgia';
     hg.fillText(state === 'over' ? 'Score ' + score : 'Stick: fly   Trigger: fire', 256, 145);
-    hg.fillText('Pull a trigger to start', 256, 178);
+    hg.fillText('Pull your ' + hand.toUpperCase() + ' trigger to start', 256, 178);
     hg.font = '26px Georgia'; hg.fillText('Grip: ' + D[dif].n + '    Stick L/R: speed ' + (spdAdj > 0 ? '+' : '') + spdAdj, 256, 212);
     hg.font = '21px Georgia'; hg.fillText('A X: music   B Y: quit   Grip: pause   Click: view', 256, 240);
     hg.font = '17px Georgia'; hg.fillText('Vibe coded by Claude and ChillGamerMac. 2026', 256, 263);
@@ -646,7 +647,12 @@ const cannon = new T.Mesh(new T.CylinderGeometry(.08,.08,1.1,8).rotateX(Math.PI/
 cannon.position.set(.3,-.1,-.2); avatar.add(cannon);
 avatar.children.forEach(c => c.visible = false);
 const PM = pix(['....rrrr....','...rrrrrr...','...rrrrrr...','....rrrr....','..bbbbbbbb..','.bbbbbbbbbb.','.sbbbbbbbbs.','.ssbbbbbbss.','..bbbbbbbb..','...bbbbbb...','...ww..ww...','...ww..ww...','..yoo..ooy..'],{r:'#e8402a',b:'#2a6fdb',s:'#f2c9a0',w:'#f0f0f8',y:'#ffe14a',o:'#ff7a1a'});
-const ps = new T.Sprite(PM); ps.scale.set(1.8,1.95,1); ps.position.y = .2; avatar.add(ps);
+const PM2 = pix(['..rrrr..','..rrrr..','.bbbbbb.','sbbbbbbs','.bbbbbb.','..bbbb..','..w..w..','..y..y..'],{r:'#e8402a',b:'#2a6fdb',s:'#f2c9a0',w:'#f0f0f8',y:'#ffb020'});
+PM2.opacity = .75;
+let cs = 'compact'; try { cs = localStorage.getItem('hvr_cs') || 'compact'; } catch(e){}
+const ps = new T.Sprite(PM2); avatar.add(ps);
+function applyCs(){ const c = cs === 'classic'; ps.material = c ? PM : PM2; ps.scale.set(c ? 1.8 : 1, c ? 1.95 : 1, 1); ps.position.y = c ? .2 : -.4; }
+applyCs();
 const shadow = new T.Mesh(new T.CircleGeometry(.7,16).rotateX(-Math.PI/2), new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.35}));
 scene.add(shadow);
 function setView(on){ tp = on; rig.position.z = on ? 7 : 0; }
@@ -657,7 +663,7 @@ function updateAvatar(inp, dt){
   avatar.position.copy(cp);
   const k = Math.min(1, dt*8);
   avatar.rotation.z += (-inp.mx*.6 - avatar.rotation.z)*k;
-  avatar.rotation.x += (-inp.my*.4 - avatar.rotation.x)*k; PM.rotation = avatar.rotation.z;
+  avatar.rotation.x += (-inp.my*.4 - avatar.rotation.x)*k; ps.material.rotation = avatar.rotation.z;
   const c = ctrls.find(x => x.userData.src && handOK(x.userData.src));
   if (c){ c.getWorldPosition(pos); c.getWorldQuaternion(q); dir.set(0,0,-1).applyQuaternion(q); tg.copy(pos).addScaledVector(dir, 40); }
   else tg.set(cp.x, cp.y, -40);
@@ -825,7 +831,8 @@ function wirePicker(inId, msgId, slot, label){
 wirePicker('mf', 'mm', 'stage', 'stage music'); wirePicker('bf', 'bm', 'boss', 'boss music');
 wirePicker('vi', 'vim', 'intro', 'stage-intro voice'); wirePicker('vp', 'vpm', 'praise', 'praise voice');
 document.getElementById('ss').onchange = e => { spdAdj = +e.target.value; drawHud(); };
-{ const hd = document.getElementById('hd'); hd.value = hand; hd.onchange = e => { hand = e.target.value; try { localStorage.setItem('hvr_hand', hand); } catch(e2){} }; }
+{ const hd = document.getElementById('hd'); hd.value = hand; hd.onchange = e => { hand = e.target.value; try { localStorage.setItem('hvr_hand', hand); } catch(e2){} drawHud(); }; }
+{ const c2 = document.getElementById('cs'); c2.value = cs; c2.onchange = e => { cs = e.target.value; try { localStorage.setItem('hvr_cs', cs); } catch(e2){} applyCs(); }; }
 addEventListener('resize', () => { if (!renderer.xr.isPresenting){ camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);} });
 drawHud(); lbFetch();
 </script>
