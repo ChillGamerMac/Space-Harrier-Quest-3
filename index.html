@@ -545,7 +545,7 @@ function spawnBoss(){
     const r = def.orb ? 1.1 : 1.4 - i*.84/def.n, s = new T.Mesh((def.rb ? new T.BoxGeometry(r*1.6,r*1.6,r*1.6) : new T.SphereGeometry(r,10,8)), i%2 ? mA : mB);
     s.userData.r = r; scene.add(s); segs.push(s);
   }
-  const hp = Math.round((60 + 25*(stage-1))*def.hp*D[dif].hp);
+  const hp = Math.round((50 + 12*Math.min(stage-1, 9) + 3*Math.max(0, stage-10))*(1 + (def.hp-1)*.15)*D[dif].hp);
   boss = {def, head, segs, t:0, hp, max:hp, fire:2.5, flash:0, dying:0, ex:0};
   bossPos(0, head.position); stageT = 3; drawHud();
 }
@@ -749,9 +749,9 @@ renderer.setAnimationLoop(now => {
     if (rockT <= 0 && !boss && !bonus && !bonusRes && stageClock < 44){ rockT = rnd(7,12); if (!enemies.some(e => e.m.position.z < -70)){ const hi = Math.random() < .5, m = new T.Mesh(rkG, rkM); m.scale.set(rnd(1.4,2.2), rnd(1,1.5), rnd(1.4,2.2)); m.position.set(clamp(cp.x + rnd(-2,2), -6, 6), FLOOR + (hi ? 6.4 : 2.4), -130); add(props, m, {r:1.8, top:0, fy:m.position.y}); } }
     if (bonus >= 6 && ringT <= 0){
       const i = rgi++ % 10; if (!i){ rgp = Math.floor(rnd(0,5)); rgq = rnd(-3,3); }
-      const P = [[5*Math.sin(i*.6), 2.4 + 1.5*Math.sin(i*.3)], [-5 + i*1.1, .8 + i*.38], [4*Math.cos(i*.7), 2.4 + 1.8*Math.sin(i*.7)], [i%2 ? 4 : -4, 2.4], [rgq, 1.2 + i*.3]][rgp];
+      const P = [[5*Math.sin(i*.6), 2.4 + 1.5*Math.sin(i*.3)], [-5 + i*1.1, .8 + i*.38], [4*Math.cos(i*.7), 2.4 + 1.8*Math.sin(i*.7)], [i%2 ? 2.2 : -2.2, 2.4], [rgq, 1.2 + i*.3]][rgp];
       const m = new T.Mesh(rgG, rgM); m.position.set(clamp(P[0], -6, 6), FLOOR + P[1] + 1.6, -130); add(props, m, {r:1.2, top:0, ring:1}); ringsTot++;
-      ringT = i === 9 ? 1.6 : .45;
+      ringT = i === 9 ? 1.6 : (stage >= 9 ? .4 : stage >= 6 ? .43 : .48);
     }
     if (enemyT <= 0){
       enemyT = Math.max(.45, 1.4 - (stage-1)*.15 - stageClock/150)/D[dif].spawn; if (!boss && !bonus && !bonusRes && stageClock < 44) spawnEnemy();
@@ -762,7 +762,7 @@ renderer.setAnimationLoop(now => {
   for (let i = props.length-1; i >= 0; i--){
     const p = props[i]; p.m.position.z += speed*dt;
     const z = p.m.position.z;
-    if (state === 'play' && Math.abs(z) < .9 && Math.abs(p.m.position.x - cp.x) < p.r + .35 && (p.ring ? Math.abs(cp.y - p.m.position.y) < 1.6 : p.fy != null ? Math.abs(cp.y - p.fy) < 1.6 : cp.y < p.top + .3)){ if (bonus > 0 || p.ring){ score += p.ring ? (ringsHit++, 500) : 200; boom(p.m.position, 0xffe14a); drop(props, i); continue; } hurt(); }
+    if (state === 'play' && Math.abs(z) < .9 && Math.abs(p.m.position.x - cp.x) < p.r + .35 && (p.ring ? Math.abs(cp.y - p.m.position.y) < 1.6 : p.fy != null ? Math.abs(cp.y - p.fy) < 1.6 : cp.y < p.top + .3)){ if (bonus > 0 || p.ring){ score += p.ring ? (ringsHit++, 50) : 200; boom(p.m.position, 0xffe14a); drop(props, i); continue; } hurt(); }
     if (z > (tp ? 4 : 8)) drop(props, i);
   }
   // enemies
